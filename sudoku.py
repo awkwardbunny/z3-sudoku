@@ -8,15 +8,16 @@ from enum import Enum
 class SudokuType(Enum):
     Classic = 1
     Miracle = 2
+    Thermo = 3
 
 class Sudoku:
 
     _grid = [[ None for _ in range(9) ] for _ in range(9) ]
-    _nums = [[ '.' for _ in range(9) ] for _ in range(9) ]
     _solver = None
     _valid_charset = set([str(x) for x in range(1,10)])
     sudoku_type = SudokuType.Classic
 
+    _nums = [[ '.' for _ in range(9) ] for _ in range(9) ]
     _extra_constraints = []
     
     def __init__(self, sudoku_string=""):
@@ -46,8 +47,13 @@ class Sudoku:
                 continue
             elif c[0] == 'M':
                 self.sudoku_type = SudokuType.Miracle
-                self._extra_constraints = c[0]
+                self._extra_constraints.append(c[0])
                 self.add_miracle_constraints()
+            elif c[0] == 'T':
+                self.sudoku_type = SudokuType.Thermo
+                self._extra_constraints.append(c)
+                self.add_thermo_constraints(c)
+        #print(self._extra_constraints)
 
     def load_numbers(self, sudoku_string):
             for r in range(9):
@@ -65,6 +71,14 @@ class Sudoku:
                         zip(self._nums[r][::3], self._nums[r][1::3], self._nums[r][2::3])]))
             if(r in [2, 5]):
                 print()
+
+    def add_thermo_constraints(self, thermo):
+        prev = None
+        for r,c in zip(thermo[1::2], thermo[2::2]):
+            current = self._grid[int(r)-1][int(c)-1]
+            if not prev == None:
+                self._solver.add(prev < current)
+            prev = current
 
     def add_miracle_constraints(self):
         self.add_chess_constraints('knight')
