@@ -9,6 +9,9 @@ class SudokuType(Enum):
     Classic = 1
     Miracle = 2
     Thermo = 3
+    Knight = 4
+    King = 5
+    Queen = 6
 
 class Sudoku:
 
@@ -53,6 +56,18 @@ class Sudoku:
                 self.sudoku_type = SudokuType.Thermo
                 self._extra_constraints.append(c)
                 self.add_thermo_constraints(c)
+            elif c[:2] == 'KN':
+                self.sudoku_type = SudokuType.Knight
+                self._extra_constraints.append(c[:2])
+                self.add_chess_constraints('knight')
+            elif c[0] == 'K':
+                self.sudoku_type = SudokuType.King
+                self._extra_constraints.append(c[0])
+                self.add_chess_constraints('king')
+            elif c[0] == 'Q':
+                self.sudoku_type = SudokuType.Queen
+                self._extra_constraints.append(c[0])
+                self.add_chess_constraints('queen')
         #print(self._extra_constraints)
 
     def load_numbers(self, sudoku_string):
@@ -113,6 +128,17 @@ class Sudoku:
             offsets = list(itertools.product((-1,1), (-1,1)))
             for v,t in self.get_offset_constraints(offsets, True):
                 self._solver.add(v != t)
+        elif(chess_type.lower() == 'queen'):
+            offsets = (
+                    (1,1), (2,2), (3,3), (4,4), (5,5), (6,6), (7,7), (8,8),
+                    (-1,1), (-2,2), (-3,3), (-4,4), (-5,5), (-6,6), (-7,7), (-8,8),
+                    (-1,-1), (-2,-2), (-3,-3), (-4,-4), (-5,-5), (-6,-6), (-7,-7), (-8,-8),
+                    (1,-1), (2,-2), (3,-3), (4,-4), (5,-5), (6,-6), (7,-7), (8,-8),
+                    ) # Is there a better way to do this
+            for v,t in self.get_offset_constraints(offsets, True):
+                self._solver.add(z3.Not(z3.And(t == 9, v == 9)))
+        else:
+            assert(False), "Invalid (or unimplemented) chess type!"
 
     def add_classic_constraints(self):
         # Digits from 1-9
