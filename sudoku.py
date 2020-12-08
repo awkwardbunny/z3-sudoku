@@ -12,6 +12,7 @@ class SudokuType(Enum):
     Knight = 4
     King = 5
     Queen = 6
+    Sandwich = 7
 
 class Sudoku:
 
@@ -55,7 +56,7 @@ class Sudoku:
             elif c[0] == 'T':
                 self.sudoku_type = SudokuType.Thermo
                 self._extra_constraints.append(c)
-                self.add_thermo_constraints(c)
+                self.add_thermo_constraints(c[1:])
             elif c[:2] == 'KN':
                 self.sudoku_type = SudokuType.Knight
                 self._extra_constraints.append(c[:2])
@@ -68,6 +69,12 @@ class Sudoku:
                 self.sudoku_type = SudokuType.Queen
                 self._extra_constraints.append(c[0])
                 self.add_chess_constraints('queen')
+            elif c[0] == 'S':
+                self.sudoku_type = SudokuType.Sandwich
+                self._extra_constraints.append(c)
+                self.add_sandwich_constraints(c.lower()[1:])
+            else:
+                assert(False), "Invalid (or unimplemented) sudoku type!"
         #print(self._extra_constraints)
 
     def load_numbers(self, sudoku_string):
@@ -87,9 +94,47 @@ class Sudoku:
             if(r in [2, 5]):
                 print()
 
+    def add_sandwich_constraints(self, sandwich):
+        #assert(False), "Invalid (or unimplemented) sudoku type!"
+        num = int(sandwich[1])-1
+        sandwich_sum = int(sandwich[2:])
+        #offsets = []
+        #if(sandwich[0] == 'r'):
+        #    offsets.append([(i, 0) for i in range(-8, 0)])
+        #    offsets.append([(i, 0) for i in range(0, 9)])
+        #elif(sandwich[0] == 'c'): 
+        #    offsets.append([(0, i) for i in range(-8, 0)])
+        #    offsets.append([(0, i) for i in range(0, 9)])
+        #else:
+        #    assert(False), "Invalid sandwich type!"
+
+        #for v, t in self.get_offset_constraints(offsets, True):
+        #    self._solver.add(z3.If(v*t == 9), <??> == sandwich_sum, True)
+
+        arr = []
+        if(sandwich[0] == 'r'):
+            arr = self._grid[num]
+        elif(sandwich[0] == 'c'):
+            arr = [self._grid[r][num] for r in range(9)]
+        else:
+            assert(False), "Invalid sandwich type!"
+
+        for s in range(9):
+            for d in range(9):
+                if(s >= d):
+                    continue
+                sv = arr[s]
+                dv = arr[d]
+                between = [arr[i] for i in range(s+1,d)]
+                #if(len(between) == 0):
+                #    self._solver.add(z3.If(sv*dv == 9, sandwich_sum == 0, True))
+                #else:
+                #    self._solver.add(z3.If(sv*dv == 9, sandwich_sum == z3.Sum(between), True))
+                self._solver.add(z3.If(sv*dv == 9, sandwich_sum == z3.Sum(between), True))
+
     def add_thermo_constraints(self, thermo):
         prev = None
-        for r,c in zip(thermo[1::2], thermo[2::2]):
+        for r,c in zip(thermo[::2], thermo[1::2]):
             current = self._grid[int(r)-1][int(c)-1]
             if not prev == None:
                 self._solver.add(prev < current)
