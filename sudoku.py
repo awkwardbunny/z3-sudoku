@@ -13,6 +13,7 @@ class SudokuType(Enum):
     King = 5
     Queen = 6
     Sandwich = 7
+    Killer = 8
 
 class Sudoku:
 
@@ -32,7 +33,7 @@ class Sudoku:
         # Create variables
         for r in range(9):
             for c in range(9):
-                v = z3.Int('cell_%d_%d' % (r, c))
+                v = z3.Int('cell_%d_%d' % (r+1, c+1))
                 self._grid[r][c] = v
 
         # Add constraints for classic sudoku
@@ -42,7 +43,7 @@ class Sudoku:
         self.load_numbers(sudoku_string[:81])
 
         if(len(sudoku_string) > 81):
-            self.load_extra_constraints(sudoku_string[81:])
+            self.load_extra_constraints(sudoku_string[81:].upper())
 
     def load_extra_constraints(self, constraints_string):
         cs = constraints_string.split(';')
@@ -72,7 +73,11 @@ class Sudoku:
             elif c[0] == 'S':
                 self.sudoku_type = SudokuType.Sandwich
                 self._extra_constraints.append(c)
-                self.add_sandwich_constraints(c.lower()[1:])
+                self.add_sandwich_constraints(c[1:])
+            elif c[0] == 'C':
+                self.sudoku_type = SudokuType.Killer
+                self._extra_constraints.append('killer')
+                self.add_cage_constraints(c[1:])
             else:
                 assert(False), "Invalid (or unimplemented) sudoku type!"
         #print(self._extra_constraints)
@@ -94,6 +99,15 @@ class Sudoku:
             if(r in [2, 5]):
                 print()
 
+    def add_cage_constraints(self, cage):
+        cage_sum = int(cage[:2])
+        cage_vars = []
+        for r,c in zip(cage[2::2], cage[3::2]):
+            cage_vars.append(self._grid[int(r)-1][int(c)-1])
+
+        self._solver.add(z3.Distinct(cage_vars))
+        self._solver.add(z3.Sum(cage_vars) == cage_sum)
+
     def add_sandwich_constraints(self, sandwich):
         #assert(False), "Invalid (or unimplemented) sudoku type!"
         num = int(sandwich[1])-1
@@ -112,9 +126,9 @@ class Sudoku:
         #    self._solver.add(z3.If(v*t == 9), <??> == sandwich_sum, True)
 
         arr = []
-        if(sandwich[0] == 'r'):
+        if(sandwich[0] == 'R'):
             arr = self._grid[num]
-        elif(sandwich[0] == 'c'):
+        elif(sandwich[0] == 'C'):
             arr = [self._grid[r][num] for r in range(9)]
         else:
             assert(False), "Invalid sandwich type!"
